@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cartas Casino</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; color: #f9fafb; background: radial-gradient(circle at 50% 0%, #185f4f, #031c19 62%); }
+    main { width: min(900px, 92vw); padding: 1.4rem 0; }
+    .top { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+    h1 { margin: 0; font-size: clamp(2.5rem, 8vw, 5rem); letter-spacing: -.07em; }
+    #balance { border-radius: 18px; padding: .8rem 1rem; color: #052e2b; background: #f7d774; font-weight: 950; font-size: 1.2rem; white-space: nowrap; }
+    .table { border: 1px solid #4f9e83; border-radius: 28px; padding: 1.5rem; background: #0a3f35cc; box-shadow: 0 28px 90px #0008; }
+    .round-bar { display: flex; justify-content: space-between; gap: 1rem; align-items: center; border-radius: 14px; padding: .75rem .9rem; color: #052e2b; background: #c7f9e9; font-weight: 950; }
+    #timer { font-variant-numeric: tabular-nums; font-size: 1.25rem; }
+    .rules { margin: 1rem 0 0; color: #c7f9e9; line-height: 1.5; text-align: center; }
+    .cards { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 1rem; margin: 1.4rem 0; }
+    .seat { display: grid; justify-items: center; gap: .6rem; color: #c7f9e9; font-weight: 800; }
+    .seat.winner { color: #f7d774; }
+    .seat.winner .playing-card { box-shadow: 0 0 0 5px #f7d774, 0 12px 24px #001b18aa; }
+    .versus { align-self: center; padding-top: 2rem; font-weight: 950; color: #f7d774; }
+    .playing-card { display: grid; align-content: space-between; width: 126px; height: 178px; border: 5px solid #f8fafc; border-radius: 14px; padding: .6rem; color: #111827; background: #fff; box-shadow: 0 12px 24px #001b18aa; font-family: Georgia, serif; font-size: 1.45rem; font-weight: 900; }
+    .playing-card .middle { place-self: center; font-size: 4rem; }
+    .playing-card .bottom { justify-self: end; transform: rotate(180deg); }
+    .playing-card.red { color: #dc2626; }
+    .playing-card.back { display: grid; place-content: center; color: #f7d774; background: repeating-linear-gradient(45deg, #0b3d68 0 8px, #155b92 8px 16px); font-size: 3rem; }
+    .bet-title { margin: .15rem 0 0; color: #c7f9e9; font-size: .85rem; }
+    .bet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; width: min(260px, 100%); }
+    button { border: 1px solid #71bfa5; border-radius: 10px; padding: .65rem .35rem; cursor: pointer; color: #052e2b; background: #f7d774; font: inherit; font-size: .82rem; font-weight: 950; transition: transform .15s, opacity .15s; }
+    button:hover:not(:disabled) { transform: translateY(-2px); }
+    button:disabled { cursor: not-allowed; opacity: .36; }
+    button.selected:disabled { border-color: #fff; color: #052e2b; background: #a7f3d0; opacity: 1; }
+    #bet-status { min-height: 1.5rem; margin: 0; color: #f7d774; text-align: center; font-weight: 850; }
+    #winners { margin-top: 1.2rem; border-top: 1px solid #4f9e83; padding-top: 1rem; text-align: center; }
+    #winners h2 { margin: 0; color: #f7d774; }
+    #winner-list { display: grid; gap: .35rem; margin: .7rem 0 0; padding: 0; list-style: none; color: #fff; font-weight: 800; }
+    #message { min-height: 1.5rem; margin: 1.1rem 0 0; text-align: center; font-weight: 850; }
+    .win { color: #f7d774; } .loss { color: #fca5a5; } .tie { color: #bfdbfe; }
+    dialog { border: 1px solid #71bfa5; border-radius: 20px; padding: 1.5rem; color: white; background: #0a3f35; }
+    dialog::backdrop { background: #020c0ada; }
+    form { display: grid; gap: .8rem; width: min(360px, 78vw); }
+    input, form button { border: 1px solid #71bfa5; border-radius: 12px; padding: .9rem; color: white; background: #0b5042; font: inherit; }
+    form button { color: #052e2b; background: #f7d774; font-weight: 900; }
+    @media (max-width: 600px) { .top { align-items: start; flex-direction: column; } .playing-card { width: 98px; height: 140px; } .cards { gap: .45rem; } .versus { padding-top: 1.5rem; } .bet-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <main><div class="top"><div><h1>Cartas</h1><div id="player-name">Casino en vivo</div></div><div id="balance">Saldo: S/ 20.00</div></div><section class="table"><div class="round-bar"><span id="round">Ronda 1 - Apuestas</span><strong id="timer">00:08</strong></div><p class="rules">Todos ven las mismas cartas. Elige una caja debajo de Carta A o Carta B. Si tu carta es la mayor, cobras el doble. Hay 8 segundos para apostar y 4 para resultados.</p><div class="cards"><section class="seat" id="seat-a"><span>Carta A</span><article id="card-a" class="playing-card back">A</article><p class="bet-title">Apostar por A</p><div class="bet-grid"><button data-side="a" data-bet="2.5">S/ 2.50</button><button data-side="a" data-bet="5">S/ 5.00</button><button data-side="a" data-bet="10">S/ 10.00</button><button data-side="a" data-bet="20">S/ 20.00</button><button data-side="a" data-bet="30">S/ 30.00</button><button data-side="a" data-bet="50">S/ 50.00</button></div></section><div class="versus">VS</div><section class="seat" id="seat-b"><span>Carta B</span><article id="card-b" class="playing-card back">B</article><p class="bet-title">Apostar por B</p><div class="bet-grid"><button data-side="b" data-bet="2.5">S/ 2.50</button><button data-side="b" data-bet="5">S/ 5.00</button><button data-side="b" data-bet="10">S/ 10.00</button><button data-side="b" data-bet="20">S/ 20.00</button><button data-side="b" data-bet="30">S/ 30.00</button><button data-side="b" data-bet="50">S/ 50.00</button></div></section></div><p id="bet-status">Esperando tu apuesta.</p><section id="winners" hidden><h2>Ganadores de la ronda</h2><ul id="winner-list"></ul></section><p id="message">Ingresa para recibir S/ 20.00.</p></section></main>
+  <dialog id="login" open><form id="form"><h2>Nombre del jugador</h2><input id="name" maxlength="18" required autofocus placeholder="Ej. Jugador 1"><button>Entrar con S/ 20.00</button></form></dialog>
+  <script>
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const suits = { hearts: ['&hearts;', 'red'], diamonds: ['&diams;', 'red'], clubs: ['&clubs;', 'black'], spades: ['&spades;', 'black'] };
+    let socket, balance = 20, endsAt = 0;
+    const money = amount => `S/ ${Number(amount).toFixed(2)}`;
+    document.querySelector('#form').addEventListener('submit', event => {
+      event.preventDefault(); socket = new WebSocket(`${protocol}://${location.host}/ws`);
+      socket.addEventListener('open', () => { socket.send(JSON.stringify({ type: 'join', name: document.querySelector('#name').value })); document.querySelector('#login').close(); });
+      socket.addEventListener('message', ({ data }) => render(JSON.parse(data)));
+    });
+    function card(target, data, label) {
+      if (!data) { target.className = 'playing-card back'; target.textContent = label; return; }
+      const [symbol, color] = suits[data.suit]; target.className = `playing-card ${color}`;
+      target.innerHTML = `<span>${data.rank}${symbol}</span><span class="middle">${symbol}</span><span class="bottom">${data.rank}${symbol}</span>`;
+    }
+    function render(data) {
+      balance = Number(data.balance); endsAt = Number(data.ends_at);
+      document.querySelector('#balance').textContent = `Saldo: ${money(balance)}`;
+      document.querySelector('#player-name').textContent = `${data.name} - ${data.players} jugador${data.players === 1 ? '' : 'es'}`;
+      document.querySelector('#round').textContent = data.phase === 'betting' ? `Ronda ${data.round} - Apuestas (${data.bet_count})` : `Ronda ${data.round} - Resultados`;
+      card(document.querySelector('#card-a'), data.phase === 'results' ? data.card_a : null, 'A');
+      card(document.querySelector('#card-b'), data.phase === 'results' ? data.card_b : null, 'B');
+      document.querySelector('#seat-a').classList.toggle('winner', data.phase === 'results' && data.winning_side === 'a');
+      document.querySelector('#seat-b').classList.toggle('winner', data.phase === 'results' && data.winning_side === 'b');
+      const hasBet = data.your_bet !== null;
+      document.querySelectorAll('[data-bet]').forEach(button => {
+        const amount = Number(button.dataset.bet);
+        button.disabled = data.phase !== 'betting' || hasBet || balance < amount;
+        button.classList.toggle('selected', hasBet && amount === Number(data.your_bet) && button.dataset.side === data.your_choice);
+      });
+      document.querySelectorAll('.bet-grid, .bet-title').forEach(item => { item.hidden = data.phase !== 'betting'; });
+      const status = document.querySelector('#bet-status');
+      status.textContent = data.phase === 'betting' ? (hasBet ? `Apuesta registrada: ${money(data.your_bet)} por Carta ${data.your_choice.toUpperCase()}` : 'Elige una caja antes del cierre.') : 'Apuestas cerradas. Se revelan las mismas cartas para todos.';
+      const winners = document.querySelector('#winners'); winners.hidden = data.phase !== 'results';
+      const noWinners = data.winning_side === 'tie' ? 'Las cartas empataron: se devolvieron las apuestas.' : 'No hubo ganadores en esta ronda.';
+      document.querySelector('#winner-list').replaceChildren(...(data.winners.length ? data.winners : [{ name: noWinners, amount: null }]).map(winner => { const item = document.createElement('li'); item.textContent = winner.amount === null ? winner.name : `${winner.name} aposto por ${winner.choice} y cobro ${money(winner.amount)}`; return item; }));
+      const message = document.querySelector('#message');
+      if (data.error) { message.textContent = data.error; message.className = 'loss'; }
+      else if (data.phase === 'results' && data.result === 'win') { message.textContent = `Ganaste ${money(data.payout)} con Carta ${data.your_choice.toUpperCase()}.`; message.className = 'win'; }
+      else if (data.phase === 'results' && data.result === 'tie') { message.textContent = 'Las cartas empataron: se devolvio tu apuesta.'; message.className = 'tie'; }
+      else if (data.phase === 'results' && data.result === 'loss') { message.textContent = 'Esta vez la otra carta fue mayor.'; message.className = 'loss'; }
+      else { message.textContent = data.phase === 'betting' ? 'La ronda esta abierta.' : 'Mira los resultados de la ronda.'; message.className = ''; }
+      updateTimer();
+    }
+    function updateTimer() { const seconds = Math.max(0, Math.ceil(endsAt - Date.now() / 1000)); document.querySelector('#timer').textContent = `00:${String(seconds).padStart(2, '0')}`; }
+    setInterval(updateTimer, 150);
+    document.querySelectorAll('[data-bet]').forEach(button => button.addEventListener('click', () => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'bet', amount: Number(button.dataset.bet), side: button.dataset.side })); }));
+  </script>
+</body>
+</html>

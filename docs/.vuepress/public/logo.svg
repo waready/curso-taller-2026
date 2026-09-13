@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Red distribuida">
+  <rect width="64" height="64" rx="16" fill="#07111f"/>
+  <path d="M19 20 32 12l13 8v15L32 43 19 35Z" fill="none" stroke="#15d1c5" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="19" cy="20" r="5" fill="#78f5b4"/>
+  <circle cx="45" cy="20" r="5" fill="#78f5b4"/>
+  <circle cx="32" cy="43" r="5" fill="#78f5b4"/>
+</svg>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plaza Chat</title>
+  <style>
+    :root { --forest:#163c36; --forest-deep:#0d2925; --cream:#f5efe3; --paper:#fffaf0; --ink:#20332f; --muted:#71817c; --orange:#f07a4b; --yellow:#f3d36a; --mint:#61d4b3; --line:#dcd6ca; font-family:"Trebuchet MS","Aptos",sans-serif; color:var(--ink); background:var(--cream); }
+    * { box-sizing:border-box; }
+    body { min-height:100vh; margin:0; background:radial-gradient(circle at 4% 8%,#f3d36a99 0,transparent 25rem),radial-gradient(circle at 96% 92%,#61d4b377 0,transparent 31rem),var(--cream); }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    .shell { display:grid; grid-template-columns:285px minmax(0,1fr); width:min(1180px,calc(100% - 34px)); height:min(820px,calc(100vh - 34px)); margin:17px auto; overflow:hidden; border:1px solid #ffffffa0; border-radius:28px; background:var(--paper); box-shadow:0 24px 70px #163c3625; }
+    aside { display:flex; flex-direction:column; min-height:0; padding:25px 20px; color:#f7fbf9; background:linear-gradient(165deg,var(--forest),var(--forest-deep)); }
+    .brand small { color:var(--yellow); font-size:.68rem; font-weight:950; letter-spacing:.17em; text-transform:uppercase; }
+    .brand h1 { margin:6px 0 2px; font-family:Georgia,"Palatino Linotype",serif; font-size:2.2rem; letter-spacing:-.06em; }
+    .brand p { margin:0; color:#a9c3bc; font-size:.78rem; line-height:1.45; }
+    .room-box { margin:25px 0 17px; border:1px solid #ffffff24; border-radius:17px; padding:13px; background:#ffffff0b; }
+    .room-box span { display:block; color:#9db9b1; font-size:.66rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+    .room-box strong { display:block; margin-top:4px; overflow:hidden; color:#fff; text-overflow:ellipsis; white-space:nowrap; }
+    .presence-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:#bed1cc; font-size:.72rem; font-weight:900; text-transform:uppercase; }
+    #online-count { display:grid; place-items:center; min-width:25px; height:25px; border-radius:999px; color:var(--forest-deep); background:var(--mint); }
+    #users { display:grid; gap:6px; margin:0; padding:0; overflow:auto; list-style:none; }
+    #users li { display:flex; align-items:center; gap:9px; border-radius:11px; padding:7px 8px; color:#dce9e5; font-size:.8rem; background:#ffffff08; }
+    .avatar { display:grid; place-items:center; flex:0 0 auto; width:29px; height:29px; border-radius:10px; color:#102722; background:var(--avatar); font-size:.7rem; font-weight:950; }
+    .side-footer { margin-top:auto; padding-top:17px; }
+    .connection { display:flex; align-items:center; gap:7px; color:#9db9b1; font-size:.7rem; }
+    .connection::before { content:""; width:8px; height:8px; border-radius:50%; background:#8b9d98; }
+    .connection[data-state="online"]::before { background:var(--mint); box-shadow:0 0 0 4px #61d4b324; }
+    .connection[data-state="error"]::before { background:#ff9182; }
+    #change-room { width:100%; margin-top:12px; border:1px solid #ffffff29; border-radius:11px; padding:.7rem; color:#eaf4f1; background:#ffffff0b; font-weight:850; }
+    .chat { display:grid; grid-template-rows:auto minmax(0,1fr) auto auto; min-width:0; min-height:0; }
+    .chat-head { display:flex; align-items:center; justify-content:space-between; gap:15px; border-bottom:1px solid var(--line); padding:19px 24px; background:#fffdf8; }
+    .chat-head h2 { margin:0; font-family:Georgia,"Palatino Linotype",serif; font-size:1.5rem; letter-spacing:-.04em; }
+    .chat-head p { margin:3px 0 0; color:var(--muted); font-size:.72rem; }
+    .live-pill { border:1px solid #b7d9cc; border-radius:999px; padding:7px 10px; color:#286450; background:#e9f7f1; font-size:.68rem; font-weight:900; }
+    #messages { display:flex; flex-direction:column; gap:12px; min-height:0; overflow:auto; padding:25px clamp(17px,4vw,38px); scroll-behavior:smooth; }
+    .empty { display:grid; place-items:center; flex:1; color:var(--muted); text-align:center; }
+    .empty div { max-width:310px; }
+    .empty strong { display:block; margin-bottom:7px; color:var(--ink); font-family:Georgia,"Palatino Linotype",serif; font-size:1.5rem; }
+    .message { align-self:flex-start; max-width:min(72%,560px); animation:arrive .24s ease-out; }
+    .message.own { align-self:flex-end; }
+    .meta { display:flex; align-items:center; gap:7px; margin:0 4px 5px; color:var(--muted); font-size:.67rem; }
+    .message.own .meta { justify-content:flex-end; }
+    .meta b { color:var(--ink); }
+    .bubble { margin:0; border:1px solid #e3ddd1; border-radius:7px 18px 18px; padding:10px 13px; color:var(--ink); background:#fff; box-shadow:0 7px 20px #20332f0b; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .message.own .bubble { border-color:#2d6d5f; border-radius:18px 7px 18px 18px; color:#f6fffb; background:var(--forest); }
+    .system { align-self:center; border-radius:999px; padding:5px 10px; color:#7c7c72; background:#eee9de; font-size:.67rem; }
+    #typing { min-height:28px; padding:3px clamp(17px,4vw,38px); color:#6a7e77; font-size:.74rem; font-style:italic; }
+    .composer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:9px; border-top:1px solid var(--line); padding:15px 18px 18px; background:#fffdf8; }
+    .composer input { width:100%; border:1px solid var(--line); border-radius:15px; padding:.88rem 1rem; color:var(--ink); background:#fff; outline:none; }
+    .composer input:focus { border-color:#4c8f7b; box-shadow:0 0 0 4px #61d4b32b; }
+    .composer button { border:0; border-radius:15px; padding:.85rem 1.15rem; color:#fff; background:var(--orange); font-weight:950; box-shadow:0 5px 0 #bb5430; }
+    dialog { border:0; border-radius:25px; padding:0; color:var(--ink); background:var(--paper); box-shadow:0 35px 90px #0d2925a8; }
+    dialog::backdrop { background:#0d2925c4; backdrop-filter:blur(6px); }
+    #login-form { display:grid; gap:14px; width:min(410px,84vw); padding:28px; }
+    #login-form small { color:var(--orange); font-size:.68rem; font-weight:950; letter-spacing:.15em; text-transform:uppercase; }
+    #login-form h2 { margin:-3px 0 0; font-family:Georgia,"Palatino Linotype",serif; font-size:2.25rem; letter-spacing:-.055em; }
+    #login-form p { margin:-7px 0 4px; color:var(--muted); font-size:.83rem; line-height:1.45; }
+    label { display:grid; gap:6px; color:#53645f; font-size:.72rem; font-weight:900; text-transform:uppercase; }
+    #login-form input { border:1px solid var(--line); border-radius:13px; padding:.85rem; color:var(--ink); background:#fff; outline:none; }
+    #login-form input:focus { border-color:#4c8f7b; box-shadow:0 0 0 4px #61d4b32b; }
+    #login-form button { border:0; border-radius:13px; padding:.9rem; color:#fff; background:var(--forest); font-weight:950; }
+    @keyframes arrive { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:none; } }
+    @media (max-width:720px) { .shell { grid-template-columns:1fr; width:100%; height:100vh; margin:0; border:0; border-radius:0; } aside { display:grid; grid-template-columns:1fr auto; align-items:center; padding:11px 15px; } .brand p,.presence-title,#users { display:none; } .brand h1 { font-size:1.45rem; } .room-box { margin:0 0 0 auto; padding:8px 10px; } .side-footer { display:none; } .message { max-width:88%; } .chat-head { padding:13px 15px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <header class="brand"><small>FastAPI + WebSocket</small><h1>Plaza Chat</h1><p>Una conversación compartida, sencilla y en tiempo real.</p></header>
+      <section class="room-box"><span>Sala actual</span><strong id="room-name">Sin conectar</strong></section>
+      <div class="presence-title"><span>En línea</span><b id="online-count">0</b></div>
+      <ul id="users"></ul>
+      <footer class="side-footer"><div id="connection" class="connection" data-state="waiting">Esperando conexión</div><button id="change-room" type="button">Cambiar de sala</button></footer>
+    </aside>
+    <main class="chat">
+      <header class="chat-head"><div><h2 id="chat-title">Conversación</h2><p>Los últimos 50 mensajes permanecen mientras el servidor está activo.</p></div><span class="live-pill">EN VIVO</span></header>
+      <section id="messages" aria-live="polite"><div class="empty"><div><strong>Aquí empieza la conversación.</strong>Comparte la sala con otra persona y envía el primer mensaje.</div></div></section>
+      <div id="typing" aria-live="polite"></div>
+      <form id="chat-form" class="composer"><input id="message" maxlength="500" autocomplete="off" placeholder="Escribe un mensaje..." required><button type="submit">Enviar</button></form>
+    </main>
+  </div>
+  <dialog id="login" open>
+    <form id="login-form">
+      <small>Bienvenido</small><h2>Entra a conversar.</h2><p>Usa el mismo nombre de sala en varias pestañas para probar el chat.</p>
+      <label>Tu nombre<input id="name" maxlength="24" required autofocus placeholder="Ej. María"></label>
+      <label>Sala<input id="room" maxlength="24" required value="General" placeholder="Ej. Equipo Puno"></label>
+      <button type="submit">Entrar al chat</button>
+    </form>
+  </dialog>
+  <script>
+    const messages = document.querySelector('#messages');
+    const messageInput = document.querySelector('#message');
+    const typing = document.querySelector('#typing');
+    const login = document.querySelector('#login');
+    const users = document.querySelector('#users');
+    const connection = document.querySelector('#connection');
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const typingUsers = new Map();
+    let socket, ownId, profile, typingTimer, reconnectTimer, leaving = false;
+
+    function initials(name) {
+      return name.split(/\s+/).slice(0, 2).map(function(part) { return part[0] || ''; }).join('').toUpperCase();
+    }
+    function setStatus(text, state) {
+      connection.textContent = text;
+      connection.dataset.state = state || 'waiting';
+    }
+    function showEmpty(text) {
+      messages.replaceChildren();
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      const content = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = 'Aquí empieza la conversación.';
+      content.append(title, document.createTextNode(text));
+      empty.append(content);
+      messages.append(empty);
+    }
+    function removeEmpty() {
+      const empty = messages.querySelector('.empty');
+      if (empty) empty.remove();
+    }
+    function addSystem(event) {
+      removeEmpty();
+      const item = document.createElement('div');
+      item.className = 'system';
+      item.textContent = event.text + (event.time ? ' · ' + event.time : '');
+      messages.append(item);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    function addMessage(event) {
+      removeEmpty();
+      const article = document.createElement('article');
+      article.className = 'message' + (event.user_id === ownId ? ' own' : '');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      avatar.style.setProperty('--avatar', event.color || '#f3d36a');
+      avatar.textContent = initials(event.user);
+      const author = document.createElement('b');
+      author.textContent = event.user_id === ownId ? 'Tú' : event.user;
+      const time = document.createElement('time');
+      time.textContent = event.time || '';
+      meta.append(avatar, author, time);
+      const text = document.createElement('p');
+      text.className = 'bubble';
+      text.textContent = event.text;
+      article.append(meta, text);
+      messages.append(article);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    function renderPresence(event) {
+      document.querySelector('#online-count').textContent = event.count;
+      users.replaceChildren(...event.users.map(function(user) {
+        const item = document.createElement('li');
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        avatar.style.setProperty('--avatar', user.color);
+        avatar.textContent = initials(user.name);
+        const name = document.createElement('span');
+        name.textContent = user.id === ownId ? user.name + ' (tú)' : user.name;
+        item.append(avatar, name);
+        return item;
+      }));
+      setStatus(event.count + ' conectado' + (event.count === 1 ? '' : 's'), 'online');
+    }
+    function renderTyping() {
+      const names = Array.from(typingUsers.values());
+      typing.textContent = names.length ? names.join(', ') + (names.length === 1 ? ' está escribiendo...' : ' están escribiendo...') : '';
+    }
+    function send(event) {
+      if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(event));
+    }
+    function connect() {
+      if (!profile) return;
+      clearTimeout(reconnectTimer);
+      setStatus('Conectando...', 'waiting');
+      const nextSocket = new WebSocket(protocol + '://' + location.host + '/ws');
+      socket = nextSocket;
+      nextSocket.addEventListener('open', function() {
+        nextSocket.send(JSON.stringify({ type:'join', name:profile.name, room:profile.room }));
+      });
+      nextSocket.addEventListener('message', function(message) {
+        const event = JSON.parse(message.data);
+        if (event.type === 'welcome') {
+          ownId = event.user.id;
+          document.querySelector('#room-name').textContent = event.room;
+          document.querySelector('#chat-title').textContent = 'Sala ' + event.room;
+          messages.replaceChildren();
+          event.history.forEach(addMessage);
+          if (!event.history.length) showEmpty('Envía el primer mensaje de la sala.');
+          login.close();
+          messageInput.focus();
+          setStatus('Conectado', 'online');
+        } else if (event.type === 'message') {
+          addMessage(event);
+        } else if (event.type === 'system') {
+          addSystem(event);
+        } else if (event.type === 'presence') {
+          renderPresence(event);
+        } else if (event.type === 'typing') {
+          if (event.active) typingUsers.set(event.user_id, event.user);
+          else typingUsers.delete(event.user_id);
+          renderTyping();
+        } else if (event.type === 'error') {
+          setStatus(event.message || 'Error en el chat', 'error');
+        }
+      });
+      nextSocket.addEventListener('close', function() {
+        if (socket !== nextSocket || leaving || !profile) return;
+        setStatus('Reconectando...', 'error');
+        reconnectTimer = setTimeout(connect, 1400);
+      });
+      nextSocket.addEventListener('error', function() { setStatus('Sin conexión', 'error'); });
+    }
+
+    document.querySelector('#login-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+      profile = { name:document.querySelector('#name').value.trim(), room:document.querySelector('#room').value.trim() };
+      leaving = false;
+      connect();
+    });
+    document.querySelector('#chat-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+      send({ type:'message', text:text });
+      send({ type:'typing', active:false });
+      messageInput.value = '';
+      messageInput.focus();
+    });
+    messageInput.addEventListener('input', function() {
+      send({ type:'typing', active:Boolean(messageInput.value.trim()) });
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(function() { send({ type:'typing', active:false }); }, 900);
+    });
+    document.querySelector('#change-room').addEventListener('click', function() {
+      leaving = true;
+      clearTimeout(reconnectTimer);
+      if (socket) socket.close();
+      profile = null;
+      ownId = null;
+      typingUsers.clear();
+      renderTyping();
+      users.replaceChildren();
+      document.querySelector('#online-count').textContent = '0';
+      document.querySelector('#room-name').textContent = 'Sin conectar';
+      setStatus('Esperando conexión', 'waiting');
+      login.showModal();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+# Chat con presencia — código completo
+
+[Ver proyecto completo en GitHub](https://github.com/waready/curso-taller-2026/tree/main/codigo/02-chat-tiempo-real) · [Descargar ZIP](/downloads/02-chat-tiempo-real.zip) · [Abrir app.py](/source/02-chat-tiempo-real/app.py) · [Abrir index.html](/source/02-chat-tiempo-real/static/index.html)
+
+Incluye mensajes, presencia, usuarios conectados y el evento “está escribiendo”.
+
+Ejecuta `uvicorn app:app --reload` y abre `http://127.0.0.1:8000` en tres pestañas.
+
+Reto: agrega reacciones, salas o mejora el control del indicador de escritura.
+
+
+## Ejecutar
+
+```powershell
+cd codigo\02-chat-tiempo-real
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app:app --reload
+```
+
+Abre [http://127.0.0.1:8000](http://127.0.0.1:8000).
+
+::: details app.py — backend completo
+```python
+from datetime import datetime
+from pathlib import Path
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
+
+
+app = FastAPI(title="Chat en tiempo real")
+BASE_DIR = Path(__file__).parent
+
+
+class ChatManager:
+    def __init__(self) -> None:
+        self.clients: dict[WebSocket, str] = {}
+
+    async def connect(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+
+    async def send(self, websocket: WebSocket, event: dict) -> None:
+        await websocket.send_json(event)
+
+    async def broadcast(self, event: dict, exclude: WebSocket | None = None) -> None:
+        disconnected: list[WebSocket] = []
+        for client in self.clients:
+            if client is exclude:
+                continue
+            try:
+                await client.send_json(event)
+            except RuntimeError:
+                disconnected.append(client)
+        for client in disconnected:
+            self.clients.pop(client, None)
+
+    async def presence(self) -> None:
+        await self.broadcast(
+            {
+                "type": "presence",
+                "count": len(self.clients),
+                "users": list(self.clients.values()),
+            }
+        )
+
+
+manager = ChatManager()
+
+
+@app.get("/")
+async def home() -> FileResponse:
+    return FileResponse(BASE_DIR / "static" / "index.html")
+
+
+@app.websocket("/ws")
+async def chat(websocket: WebSocket) -> None:
+    await manager.connect(websocket)
+    username = "Anónimo"
+    try:
+        first_event = await websocket.receive_json()
+        username = str(first_event.get("user", "")).strip()[:24]
+        if not username:
+            await websocket.close(code=1008, reason="Nombre requerido")
+            return
+
+        manager.clients[websocket] = username
+        await manager.broadcast(
+            {"type": "system", "text": f"{username} entró al chat"}
+        )
+        await manager.presence()
+
+        while True:
+            event = await websocket.receive_json()
+            event_type = event.get("type")
+
+            if event_type == "message":
+                text = str(event.get("text", "")).strip()[:300]
+                if text:
+                    await manager.broadcast(
+                        {
+                            "type": "message",
+                            "user": username,
+                            "text": text,
+                            "time": datetime.now().strftime("%H:%M"),
+                        }
+                    )
+            elif event_type == "typing":
+                await manager.broadcast(
+                    {
+                        "type": "typing",
+                        "user": username,
+                        "active": bool(event.get("active")),
+                    },
+                    exclude=websocket,
+                )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        was_connected = manager.clients.pop(websocket, None)
+        if was_connected:
+            await manager.broadcast(
+                {"type": "system", "text": f"{username} salió del chat"}
+            )
+            await manager.presence()
+```
+:::
+
+::: details static/index.html — frontend completo
+```html
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat distribuido</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: #ecf3ff; background: #07111f; }
+    .app { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: 100vh; }
+    aside { padding: 1.5rem; border-right: 1px solid #203753; background: #0a1728; }
+    h1 { margin: 0 0 .3rem; letter-spacing: -.05em; }
+    #presence { color: #5ce9df; font-weight: 700; }
+    #users { padding: 0; list-style: none; color: #a9b8cc; }
+    #users li { margin: .45rem 0; }
+    main { display: grid; grid-template-rows: 1fr auto auto; gap: .7rem; padding: 1.25rem; min-width: 0; }
+    #messages { overflow: auto; min-height: 50vh; }
+    .message { max-width: 75%; margin: .7rem 0; border-radius: 14px; padding: .75rem 1rem; background: #102640; }
+    .message strong { color: #5ce9df; }
+    .message time { margin-left: .5rem; color: #7f93aa; font-size: .75rem; }
+    .system { margin: .6rem 0; color: #7f93aa; font-size: .9rem; }
+    #typing { min-height: 1.25rem; color: #9eb0c4; font-size: .9rem; }
+    form { display: grid; grid-template-columns: 1fr auto; gap: .6rem; }
+    input, button { border: 1px solid #2a4666; border-radius: 12px; padding: .9rem; font: inherit; }
+    input { color: white; background: #0d1e32; }
+    button { cursor: pointer; color: #031514; background: #5ce9df; font-weight: 800; }
+    dialog { border: 1px solid #2c4867; border-radius: 20px; padding: 1.4rem; color: #fff; background: #0d1e32; }
+    dialog form { display: grid; grid-template-columns: 1fr; min-width: min(360px, 76vw); }
+    dialog::backdrop { background: rgb(2 8 16 / 80%); backdrop-filter: blur(5px); }
+    @media (max-width: 700px) { .app { grid-template-columns: 1fr; } aside { display: none; } .message { max-width: 92%; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside><h1>Chat vivo</h1><div id="presence">0 conectados</div><ul id="users"></ul></aside>
+    <main>
+      <section id="messages" aria-live="polite"></section>
+      <div id="typing"></div>
+      <form id="chat-form"><input id="message" maxlength="300" placeholder="Escribe un mensaje" autocomplete="off"><button>Enviar</button></form>
+    </main>
+  </div>
+  <dialog id="login" open>
+    <form id="login-form"><h2>Entrar al chat</h2><input id="name" maxlength="24" placeholder="Tu nombre" required autofocus><button>Conectar</button></form>
+  </dialog>
+  <script>
+    let socket;
+    let typingTimer;
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const messages = document.querySelector('#messages');
+    const typing = document.querySelector('#typing');
+
+    function addMessage(event) {
+      const item = document.createElement('div');
+      if (event.type === 'system') {
+        item.className = 'system';
+        item.textContent = event.text;
+      } else {
+        item.className = 'message';
+        const author = document.createElement('strong');
+        author.textContent = event.user;
+        const time = document.createElement('time');
+        time.textContent = event.time;
+        const text = document.createElement('div');
+        text.textContent = event.text;
+        item.append(author, time, text);
+      }
+      messages.append(item);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    document.querySelector('#login-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = document.querySelector('#name').value.trim();
+      socket = new WebSocket(`${protocol}://${location.host}/ws`);
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify({ type: 'join', user: name }));
+        document.querySelector('#login').close();
+        document.querySelector('#message').focus();
+      });
+      socket.addEventListener('message', ({ data }) => {
+        const event = JSON.parse(data);
+        if (event.type === 'message' || event.type === 'system') addMessage(event);
+        if (event.type === 'presence') {
+          document.querySelector('#presence').textContent = `${event.count} conectado${event.count === 1 ? '' : 's'}`;
+          document.querySelector('#users').replaceChildren(...event.users.map(user => {
+            const li = document.createElement('li'); li.textContent = `● ${user}`; return li;
+          }));
+        }
+        if (event.type === 'typing') typing.textContent = event.active ? `${event.user} está escribiendo…` : '';
+      });
+    });
+
+    document.querySelector('#chat-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const input = document.querySelector('#message');
+      if (socket?.readyState === WebSocket.OPEN && input.value.trim()) {
+        socket.send(JSON.stringify({ type: 'message', text: input.value }));
+        socket.send(JSON.stringify({ type: 'typing', active: false }));
+        input.value = '';
+      }
+    });
+
+    document.querySelector('#message').addEventListener('input', () => {
+      if (socket?.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({ type: 'typing', active: true }));
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => socket.send(JSON.stringify({ type: 'typing', active: false })), 800);
+    });
+  </script>
+</body>
+</html>
+```
+:::
+
+::: details requirements.txt — dependencias
+```text
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+```
+:::

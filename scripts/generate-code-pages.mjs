@@ -41,7 +41,7 @@ for (const folder of folders) {
   const html = await readFile(join(project, 'static', 'index.html'), 'utf8');
   const requirements = await readFile(join(project, 'requirements.txt'), 'utf8');
   const readme = await readFile(join(project, 'README.md'), 'utf8');
-  const readmeBody = readme.replace(/^# .+\r?\n+/, '');
+  const readmeBody = readme.replace(/^# .+\r?\n+/, '').trimStart();
 
   const page = `# ${titles[folder]} — código completo
 
@@ -84,7 +84,7 @@ ${escapeFence(requirements).trimEnd()}
 }
 
 const cards = folders
-  .map((folder) => `  <a class="project-card" href="/codigo/${folder}.html"><strong>${titles[folder]}</strong><span>Backend, frontend, dependencias, ejecución y ZIP.</span></a>`)
+  .map((folder) => `  <a class="project-card" href="./${folder}.html"><strong>${titles[folder]}</strong><span>Backend, frontend, dependencias, ejecución y ZIP.</span></a>`)
   .join('\n');
 
 const index = `# Código completo de la clase

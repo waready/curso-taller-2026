@@ -2,11 +2,14 @@ import { viteBundler } from '@vuepress/bundler-vite'
 import { defaultTheme } from '@vuepress/theme-default'
 import { defineUserConfig } from 'vuepress'
 
+const base = process.env.DOCS_BASE || '/'
+
 export default defineUserConfig({
   lang: 'es-PE',
+  base,
   title: 'Curso Taller 2026',
   description: 'Arquitecturas Distribuidas y Desarrollo Asistido por Inteligencia Artificial con Python y FastAPI',
-  dest: 'dist',
+  dest: 'build',
   bundler: viteBundler({
     viteOptions: {
       server: {
@@ -19,7 +22,7 @@ export default defineUserConfig({
   head: [
     ['meta', { name: 'theme-color', content: '#3eaf7c' }],
     ['meta', { name: 'color-scheme', content: 'dark light' }],
-    ['link', { rel: 'icon', type: 'image/png', href: '/vuepress-logo.png' }],
+    ['link', { rel: 'icon', type: 'image/png', href: `${base}vuepress-logo.png` }],
   ],
   theme: defaultTheme({
     logo: '/vuepress-logo.png',

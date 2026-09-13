@@ -8,7 +8,7 @@ Para las prácticas se necesita **Python, VS Code, Git y un navegador moderno**.
   <a class="download-card" href="https://www.python.org/downloads/windows/" target="_blank" rel="noopener"><small>PASO 1</small><strong>Python para Windows</strong><span>Descarga la versión de 64 bits y activa “Add Python to PATH”.</span></a>
   <a class="download-card" href="https://code.visualstudio.com/Download" target="_blank" rel="noopener"><small>PASO 2</small><strong>Visual Studio Code</strong><span>Editor para abrir, ejecutar y modificar los proyectos.</span></a>
   <a class="download-card" href="https://git-scm.com/download/win" target="_blank" rel="noopener"><small>PASO 3</small><strong>Git para Windows</strong><span>Recomendado para trabajar con versiones y para Claude Code.</span></a>
-  <a class="download-card featured" href="/downloads/curso-completo.zip" download><small>PASO 4</small><strong>Código completo</strong><span>Ocho demos con backend, frontend e instrucciones.</span></a>
+  <a class="download-card featured" href="./downloads/curso-completo.zip" download><small>PASO 4</small><strong>Código completo</strong><span>Diez demos con backend, frontend e instrucciones.</span></a>
 </div>
 
 ## Asistente de IA — elige uno

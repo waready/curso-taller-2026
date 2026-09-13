@@ -24,7 +24,7 @@ footer: Curso Taller 2026 · Python · FastAPI · WebSocket
 ---
 
 <section class="course-panel">
-  <img src="./vuepress-logo.png" alt="Logo de VuePress">
+  <img src="https://vuepress.vuejs.org/images/hero.png" alt="Logo de VuePress">
   <div>
     <span class="eyebrow">Sitio del curso</span>
     <h2>Documentación creada con VuePress</h2>
